@@ -5,7 +5,6 @@ import android.app.Dialog
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,9 +18,13 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import com.burhanrashid52.photoediting.domain.StickerModel
+import java.util.ArrayList
 
 class StickerBSFragment : BottomSheetDialogFragment() {
     private var mStickerListener: StickerListener? = null
+    private var mStickerAdapter: StickerAdapter? = null
+
     fun setStickerListener(stickerListener: StickerListener?) {
         mStickerListener = stickerListener
     }
@@ -54,28 +57,51 @@ class StickerBSFragment : BottomSheetDialogFragment() {
         val rvEmoji: RecyclerView = contentView.findViewById(R.id.rvEmoji)
         val gridLayoutManager = GridLayoutManager(activity, 3)
         rvEmoji.layoutManager = gridLayoutManager
-        val stickerAdapter = StickerAdapter()
-        rvEmoji.adapter = stickerAdapter
+        mStickerAdapter = StickerAdapter()
+        rvEmoji.adapter = mStickerAdapter
         rvEmoji.setHasFixedSize(true)
-        rvEmoji.setItemViewCacheSize(stickerPathList.size)
+        rvEmoji.setItemViewCacheSize(stickersModels.size)
+
+        parseArgs()
+    }
+
+    private fun parseArgs() {
+        val stickersModel =
+            arguments?.getParcelableArrayList<StickerModel>(STICKERS_ARG) as ArrayList<StickerModel>
+        stickersModels = stickersModel
     }
 
     inner class StickerAdapter : RecyclerView.Adapter<StickerAdapter.ViewHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.row_sticker, parent, false)
+            val view =
+                LayoutInflater.from(parent.context).inflate(R.layout.row_sticker, parent, false)
             return ViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             // Load sticker image from remote url
             Glide.with(requireContext())
+                .asBitmap()
+                .load(stickersModels[position])
+                .into(holder.imgSticker)
+
+            val sticker = stickersModels[position]
+            if (sticker.sourceType == "url") {
+                Glide.with(requireContext())
                     .asBitmap()
-                    .load(stickerPathList[position])
+                    .load(sticker.address)
                     .into(holder.imgSticker)
+            } else {
+                val bitmap = BitmapFactory.decodeStream(context?.assets?.open("filters/${sticker.address}"))
+                Glide.with(requireContext())
+                    .asBitmap()
+                    .load(bitmap)
+                    .into(holder.imgSticker)
+            }
         }
 
         override fun getItemCount(): Int {
-            return stickerPathList.size
+            return stickersModels.size
         }
 
         inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -84,16 +110,39 @@ class StickerBSFragment : BottomSheetDialogFragment() {
             init {
                 itemView.setOnClickListener {
                     if (mStickerListener != null) {
-                        Glide.with(requireContext())
+                        val sticker = stickersModels[layoutPosition]
+
+                        if(sticker.sourceType == "url") {
+                            Glide.with(requireContext())
                                 .asBitmap()
-                                .load(stickerPathList[layoutPosition])
+                                .load(sticker.address)
                                 .into(object : CustomTarget<Bitmap?>(256, 256) {
-                                    override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap?>?) {
+                                    override fun onResourceReady(
+                                        resource: Bitmap,
+                                        transition: Transition<in Bitmap?>?
+                                    ) {
                                         mStickerListener!!.onStickerClick(resource)
                                     }
 
                                     override fun onLoadCleared(placeholder: Drawable?) {}
                                 })
+                        } else {
+                            val bitmap = BitmapFactory.decodeStream(context?.assets?.open("filters/${sticker.address}"))
+                            Glide.with(requireContext())
+                                .asBitmap()
+                                .load(bitmap)
+                                .into(object : CustomTarget<Bitmap?>(256, 256) {
+                                    override fun onResourceReady(
+                                        resource: Bitmap,
+                                        transition: Transition<in Bitmap?>?
+                                    ) {
+                                        mStickerListener!!.onStickerClick(resource)
+                                    }
+
+                                    override fun onLoadCleared(placeholder: Drawable?) {}
+                                })
+                        }
+
                     }
                     dismiss()
                 }
@@ -103,16 +152,20 @@ class StickerBSFragment : BottomSheetDialogFragment() {
 
     companion object {
         // Image Urls from flaticon(https://www.flaticon.com/stickers-pack/food-289)
-        private val stickerPathList = arrayOf(
-                "https://cdn-icons-png.flaticon.com/256/4392/4392452.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392455.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392459.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392462.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392465.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392467.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392469.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392471.png",
-                "https://cdn-icons-png.flaticon.com/256/4392/4392522.png",
-        )
+//        private var stickerPathList = arrayListOf(
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392452.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392455.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392459.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392462.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392465.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392467.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392469.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392471.png",
+//                "https://cdn-icons-png.flaticon.com/256/4392/4392522.png",
+//        )
+
+        private var stickersModels = mutableListOf<StickerModel>()
+
+        const val STICKERS_ARG = "stickers_arg"
     }
 }

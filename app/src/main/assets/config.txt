@@ -1,0 +1,29 @@
+{
+  "toolsColor": "#1FA83F",
+  "toolsNames": {
+    "shape": "SHAPER",
+    "text": "TEXTEDITOR",
+    "eraser": "ERASER",
+    "filter": "FILTER",
+    "emoji": "EMOJI",
+    "sticker": "STICKER"
+  },
+  "stickers": [
+    {
+      "sourceType": "assets",
+      "address": "tint.png"
+    },
+    {
+      "sourceType": "assets",
+      "address": "sharpen.png"
+    },
+    {
+      "sourceType": "url",
+      "address": "https://i.pinimg.com/564x/6b/3e/52/6b3e5284a9dbb90142a514cf05050b24.jpg"
+    },
+    {
+    "sourceType": "url",
+    "address": "https://papik.pro/uploads/posts/2021-11/1636288896_1-papik-pro-p-zhdu-stiker-1.png"
+    }
+  ]
+}

@@ -6,8 +6,11 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
@@ -46,10 +49,13 @@ import ja.burhanrashid52.photoeditor.PhotoFilter
 import com.burhanrashid52.photoediting.tools.ToolType
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
+import java.util.ArrayList
 import java.io.File
 import java.io.IOException
 import java.lang.Exception
 import androidx.annotation.RequiresPermission
+import com.burhanrashid52.photoediting.tools.ConfigReader
+import com.burhanrashid52.photoediting.tools.EditingToolsAdapter.ToolModel
 
 class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickListener,
     PropertiesBSFragment.Properties, ShapeBSFragment.Properties, EmojiListener, StickerListener,
@@ -115,6 +121,8 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         //Set Image Dynamically
         mPhotoEditorView?.source?.setImageResource(R.drawable.paris_tower)
         mSaveFileHelper = FileSaveHelper(this)
+
+        parseConfig()
     }
 
     private fun handleIntentImage(source: ImageView?) {
@@ -169,9 +177,63 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         imgShare.setOnClickListener(this)
     }
 
+    private fun parseConfig() {
+        val configModel = ConfigReader().read(CONFIG_NAME, applicationContext) ?: return
+        //Tools color
+        val rvToolsColor = ColorDrawable(Color.parseColor(configModel.toolsColor))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            mRvTools?.background = rvToolsColor
+        }
+
+        //Tools names
+        val mToolList = mutableListOf<ToolModel>()
+        mToolList.add(ToolModel(configModel.toolsNames.shape, R.drawable.ic_oval, ToolType.SHAPE))
+        mToolList.add(ToolModel(configModel.toolsNames.text, R.drawable.ic_text, ToolType.TEXT))
+        mToolList.add(
+            ToolModel(
+                configModel.toolsNames.eraser,
+                R.drawable.ic_eraser,
+                ToolType.ERASER
+            )
+        )
+        mToolList.add(
+            ToolModel(
+                configModel.toolsNames.filter,
+                R.drawable.ic_photo_filter,
+                ToolType.FILTER
+            )
+        )
+        mToolList.add(
+            ToolModel(
+                configModel.toolsNames.emoji,
+                R.drawable.ic_insert_emoticon,
+                ToolType.EMOJI
+            )
+        )
+        mToolList.add(
+            ToolModel(
+                configModel.toolsNames.sticker,
+                R.drawable.ic_sticker,
+                ToolType.STICKER
+            )
+        )
+        mEditingToolsAdapter.setNewTools(mToolList)
+
+        val sticker = ArrayList(configModel.stickers)
+        if(mStickerBSFragment?.arguments == null) {
+            mStickerBSFragment?.arguments = Bundle().apply {
+                putParcelableArrayList(StickerBSFragment.STICKERS_ARG, sticker)
+            }
+        } else {
+            mStickerBSFragment?.arguments?.putParcelableArrayList(StickerBSFragment.STICKERS_ARG, sticker)
+        }
+    }
+
     override fun onEditTextChangeListener(rootView: View?, text: String?, colorCode: Int) {
-        val textEditorDialogFragment = TextEditorDialogFragment.show(this, text.toString(), colorCode)
-        textEditorDialogFragment.setOnTextEditorListener (object : TextEditorDialogFragment.TextEditorListener {
+        val textEditorDialogFragment =
+            TextEditorDialogFragment.show(this, text.toString(), colorCode)
+        textEditorDialogFragment.setOnTextEditorListener(object :
+            TextEditorDialogFragment.TextEditorListener {
             override fun onDone(inputText: String?, colorCode: Int) {
                 val styleBuilder = TextStyleBuilder()
                 styleBuilder.withTextColor(colorCode)
@@ -184,11 +246,17 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
     }
 
     override fun onAddViewListener(viewType: ViewType?, numberOfAddedViews: Int) {
-        Log.d(TAG, "onAddViewListener() called with: viewType = [$viewType], numberOfAddedViews = [$numberOfAddedViews]")
+        Log.d(
+            TAG,
+            "onAddViewListener() called with: viewType = [$viewType], numberOfAddedViews = [$numberOfAddedViews]"
+        )
     }
 
     override fun onRemoveViewListener(viewType: ViewType?, numberOfAddedViews: Int) {
-        Log.d(TAG, "onRemoveViewListener() called with: viewType = [$viewType], numberOfAddedViews = [$numberOfAddedViews]")
+        Log.d(
+            TAG,
+            "onRemoveViewListener() called with: viewType = [$viewType], numberOfAddedViews = [$numberOfAddedViews]"
+        )
     }
 
     override fun onStartViewChangeListener(viewType: ViewType?) {
@@ -389,7 +457,8 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
             }
             ToolType.TEXT -> {
                 val textEditorDialogFragment = TextEditorDialogFragment.show(this)
-                textEditorDialogFragment.setOnTextEditorListener(object : TextEditorDialogFragment.TextEditorListener {
+                textEditorDialogFragment.setOnTextEditorListener(object :
+                    TextEditorDialogFragment.TextEditorListener {
                     override fun onDone(inputText: String?, colorCode: Int) {
                         val styleBuilder = TextStyleBuilder()
                         styleBuilder.withTextColor(colorCode)
@@ -415,13 +484,15 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         if (fragment == null || fragment.isAdded) {
             return
         }
+
         fragment.show(supportFragmentManager, fragment.tag)
     }
 
     private fun showFilter(isVisible: Boolean) {
         mIsFilterVisible = isVisible
         mConstraintSet.clone(mRootView)
-        val rvFilterId: Int = mRvFilters?.id ?: throw IllegalArgumentException("RV Filter ID Expected")
+        val rvFilterId: Int =
+            mRvFilters?.id ?: throw IllegalArgumentException("RV Filter ID Expected")
         if (isVisible) {
             mConstraintSet.clear(rvFilterId, ConstraintSet.START)
             mConstraintSet.connect(
@@ -447,7 +518,8 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
     }
 
     override fun onBackPressed() {
-        val isCacheEmpty = mPhotoEditor?.isCacheEmpty ?: throw IllegalArgumentException("isCacheEmpty Expected")
+        val isCacheEmpty =
+            mPhotoEditor?.isCacheEmpty ?: throw IllegalArgumentException("isCacheEmpty Expected")
 
         if (mIsFilterVisible) {
             showFilter(false)
@@ -466,5 +538,7 @@ class EditImageActivity : BaseActivity(), OnPhotoEditorListener, View.OnClickLis
         private const val PICK_REQUEST = 53
         const val ACTION_NEXTGEN_EDIT = "action_nextgen_edit"
         const val PINCH_TEXT_SCALABLE_INTENT_KEY = "PINCH_TEXT_SCALABLE"
+
+        const val CONFIG_NAME = "config.txt"
     }
 }
